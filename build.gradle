@@ -1,0 +1,592 @@
+/*
+ * build.gradle
+ *
+ * Created by Stephen Legge <stephen@aleggeup.com>, October 2016
+ *
+ * Copyright (C) 2016-2017 [ A Legge Up ], Stephen Legge <stephen@aleggeup.com>
+ * All Rights Reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of [ A Legge Up ], [ A Legge Up Consulting] nor the
+ *       names of its contributors may be used to endorse or promote products
+ *       derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+apply plugin: 'c'
+apply plugin: 'cpp'
+apply plugin: 'assembler'
+
+ext {
+    baseVersion = '0.9.0'
+    def timestampFormat = new java.text.SimpleDateFormat('yyyyMMddHHmm')
+    timestampFormat.timeZone = TimeZone.getTimeZone("UTC")
+
+    project.version = baseVersion + "-" + timestampFormat.format(new Date()) + "Z-SNAPSHOT"
+
+    toolchainName = "gcc-arm-none-eabi-5_4-2016q3"
+    toolchainTimestamp = "20160926"
+    toolchainPlatform = ""
+    toolchainExtension = "tar.bz2"
+
+    String osName = System.getProperty("os.name").toLowerCase();
+    if (osName.contains("windows")) {
+        toolchainPlatform = "win32"
+        toolchainExtension = "zip"
+    } else if (osName.contains("mac")) {
+        toolchainPlatform = "mac"
+        toolchainExtension = "tar.bz2"
+    } else if (osName.contains("linux")) {
+        toolchainPlatform = "linux"
+        toolchainExtension = "tar.bz2"
+    }
+
+    // https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/gcc-arm-none-eabi-5_4-2016q3-20160926-mac.tar.bz2
+    // https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2
+    // https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/gcc-arm-none-eabi-5_4-2016q3-20160926-win32.zip
+
+    // https://developer.arm.com/-/media/Files/downloads/gnu-rm/6-2016q4/gcc-arm-none-eabi-6_2-2016q4-20161216-win32-zip.zip
+
+    toolchainUrl = "https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/" + toolchainName + "-" + toolchainTimestamp + "-" + toolchainPlatform + "." + toolchainExtension
+}
+
+description = """
+Example embedded project with CppUTest examples using Gradle
+
+Project name: ${project.name}
+Project version: ${project.version}
+"""
+
+model {
+
+    platforms {
+        "x86_64-linux" {
+            architecture "x86_64"
+            operatingSystem "linux"
+        }
+
+        "x86_64-pc-cygwin" {
+            architecture "x86_64"
+            operatingSystem "windows"
+        }
+
+        "osx_x86-64" {
+            architecture "x86_64"
+            operatingSystem "osx"
+        }
+
+        'cortex-m3' {
+            architecture "arm-none-eabi"
+        }
+    }
+
+    buildTypes {
+        debug
+        release
+    }
+
+    flavors {
+        community
+    }
+
+    repositories {
+        libs(PrebuiltLibraries) {
+            def os = osShortName(System.getProperty("os.name").toLowerCase())
+            def osArch = System.getProperty("os.arch").toLowerCase()
+
+            'cmsis-st-core' {
+                headers.srcDir "vendor/ST/CMSIS/Include"
+            }
+
+            'cmsis-st-device-stm32f1xx' {
+                headers.srcDir "vendor/ST/CMSIS/Device/ST/STM32F1xx/Include"
+            }
+
+            'cpputest' {
+                headers.srcDirs "vendor/cpputest/include", "vendor/cpputest/" + os + "/" + osArch + "/include"
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file("vendor/cpputest/" + os + "/" + osArch + "/lib/libCppUTest.a")
+                }
+            }
+
+            'cpputest-ext' {
+                headers.srcDirs "vendor/cpputest/include", "vendor/cpputest/" + os + "/" + osArch + "/include"
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file("vendor/cpputest/" + os + "/" + osArch + "/lib/libCppUTestExt.a")
+                }
+            }
+        }
+    }
+
+    toolChains {
+
+        linux(Gcc) {
+            target("x86_64-linux") {
+
+                if (platform.operatingSystem.current) {
+
+                    cppCompiler.withArguments { args ->
+                        args << "-std=gnu++11"
+                        args << "-Wall"
+                        args << "-Wconversion"
+                        args << "-Werror"
+                        args << "-Wextra"
+                        args << "-Wshadow"
+                        args << "-Wswitch-default"
+                        args << "-Wswitch-enum"
+                        args << "-Wno-long-long"
+                        args << "-Woverloaded-virtual"
+                        args << "-pedantic-errors"
+                        args << "-c"
+                        args << "-MMD"
+                        args << "-MP"
+                    }
+
+                    linker.withArguments { args ->
+                        args << "-lgcov"
+                    }
+                } else {
+                    path "/notexist"
+                }
+            }
+        }
+
+        cygwin(Gcc) {
+            target("x86_64-pc-cygwin") {
+
+                if (platform.operatingSystem.current) {
+
+                    cppCompiler.withArguments { args ->
+                        args << "-std=gnu++11"
+                        args << "-Wall"
+                        args << "-Wconversion"
+                        args << "-Werror"
+                        args << "-Werror=c++14-compat"
+                        args << "-Wextra"
+                        args << "-Wshadow"
+                        args << "-Wswitch-default"
+                        args << "-Wswitch-enum"
+                        args << "-Wno-long-long"
+                        args << "-Woverloaded-virtual"
+                        args << "-fsized-deallocation"
+                        args << "-pedantic-errors"
+                        args << "-c"
+                        args << "-MMD"
+                        args << "-MP"
+                    }
+
+                    linker.withArguments { args ->
+                        args << "-lgcov"
+                    }
+                } else {
+                    path "/notexist"
+                }
+
+            }
+
+        }
+
+        arm(Gcc) {
+            target("cortex-m3") {
+                path '.tools/' + project.ext.toolchainName + '/bin/'
+
+                cppCompiler.executable = 'arm-none-eabi-g++'
+                cCompiler.executable = 'arm-none-eabi-gcc'
+                assembler.executable = 'arm-none-eabi-gcc'
+                linker.executable = 'arm-none-eabi-g++'
+                staticLibArchiver.executable = 'arm-none-eabi-ar'
+
+                cppCompiler.withArguments { args ->
+                    args << "-mcpu=cortex-m3"
+                    args << "-mthumb"
+                    args << "-std=gnu++11"
+                    args << "-fdata-sections"
+                    args << "-ffunction-sections"
+                    args << "-fmessage-length=0"
+                    args << "-fno-common"
+                    args << "-fno-exceptions"
+                    args << "-fno-rtti"
+                    args << "-fomit-frame-pointer"
+                    args << "-Wall"
+                    args << "-Wextra"
+                    args << "-MMD"
+                    args << "-MP"
+                }
+
+                cCompiler.withArguments { args ->
+                    args << "-mcpu=cortex-m3"
+                    args << "-mthumb"
+                    args << "-std=gnu99"
+                    args << "-fdata-sections"
+                    args << "-ffunction-sections"
+                    args << "-fmessage-length=0"
+                    args << "-fno-common"
+                    args << "-fno-exceptions"
+                    args << "-fomit-frame-pointer"
+                    args << "-Wall"
+                    args << "-Wextra"
+                    args << "-MMD"
+                    args << "-MP"
+                }
+
+                assembler.withArguments { args ->
+                    args << "-mcpu=cortex-m3"
+                    args << "-mthumb"
+                    args << "-std=gnu++11"
+                    args << "-fdata-sections"
+                    args << "-ffunction-sections"
+                    args << "-fmessage-length=0"
+                    args << "-fno-common"
+                    args << "-fno-exceptions"
+                    args << "-fomit-frame-pointer"
+                    args << "-Wall"
+                    args << "-Wa,-mimplicit-it=always"
+                    args << "-Wextra"
+                    args << "-MMD"
+                    args << "-MP"
+                    args << "-x"
+                    args << "assembler-with-cpp"
+                }
+
+                linker.withArguments { args ->
+                    args << "-mcpu=cortex-m3"
+                    args << "-mthumb"
+                    args << "-Tsrc/firmware/linker/stm32.ld"
+                    args << "-Wl,--gc-sections"
+                    args << "--specs=nano.specs"
+                    args << "-Wl,--start-group"
+                    args << "-lstdc++"
+                    args << "-lc"
+                    args << "-lnosys"
+                    args << "-Wl,--end-group"
+                }
+            }
+        }
+
+        clang(Clang) {
+            target("osx_x86-64") {
+
+                if (platform.operatingSystem.current) {
+                    path "/usr/bin/"
+
+                    def profileLibDir = findFileRecursive('/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/clang/', ~/clang_rt.profile_osx/)
+                    linker.withArguments { args ->
+                        args << "-lclang_rt.profile_osx"
+                        args << "-L" + profileLibDir.parent
+                    }
+                } else {
+                    path "/notexist"
+                }
+            }
+        }
+    }
+
+    components {
+
+        firmware(NativeExecutableSpec) {
+            targetPlatform "cortex-m3"
+            targetBuildTypes "debug", "release"
+            targetFlavors "community"
+            baseName imageBaseName + "-" + project.version + ".elf"
+
+            sources {
+
+                asm {
+                    source {
+                        srcDirs "src/firmware/asm", "src/shared/asm"
+                        include "**/*.s", "**/*.S"
+                    }
+                }
+
+                c.lib library: 'cmsis-st-core', linkage: 'api'
+                c.lib library: 'cmsis-st-device-stm32f1xx', linkage: 'api'
+                c {
+                    source {
+                        srcDirs "src/firmware/c", "src/shared/c"
+                        include "**/*.c"
+                    }
+
+                    exportedHeaders {
+                        srcDirs "src/firmware/include", "src/shared/include"
+                    }
+                }
+
+                cpp.lib library: 'cmsis-st-core', linkage: 'api'
+                cpp.lib library: 'cmsis-st-device-stm32f1xx', linkage: 'api'
+                cpp {
+
+                    source {
+                        srcDirs "src/firmware/cpp", "src/shared/cpp"
+                        include "**/*.cpp", "**/*.c++", "**/*.cc", "**/*.C"
+                    }
+
+                    exportedHeaders {
+                        srcDirs "src/firmware/include", "src/shared/include"
+                    }
+                }
+            }
+
+            binaries {
+                all {
+                    cCompiler.define "${processorType}"
+                    cppCompiler.define "${processorType}"
+
+                    linker.args "-Wl,-Map=build/exe/firmware/${buildType.name}/${baseName}.map,--cref"
+
+                    if (toolChain in Gcc && buildType == buildTypes.debug) {
+                        cppCompiler.define "DEBUG"
+                        cCompiler.define "DEBUG"
+                        cppCompiler.args "-g", "-O0"
+                        cCompiler.args "-g", "-O0"
+                        assembler.args "-g", "-O0"
+                    } else if (toolChain in Gcc && buildType != buildTypes.debug) {
+                        cppCompiler.define "NDEBUG"
+                        cCompiler.define "NDEBUG"
+                        cppCompiler.args "-Os"
+                        cCompiler.args "-Os"
+                        assembler.args "-Os"
+                    }
+                }
+            }
+
+        }
+
+        utestrunner(NativeExecutableSpec) {
+            targetPlatform "osx_x86-64"
+            targetPlatform "x86_64-pc-cygwin"
+            targetPlatform "x86_64-linux"
+
+            targetBuildTypes "debug"
+            targetFlavors "community"
+
+            sources {
+                asm {
+                    source {
+                        srcDirs "src/shared/asm", "src/test/asm"
+                        include "**/*.s", "**/*.S"
+                    }
+                }
+
+                c.lib library: 'cmsis-st-core', linkage: 'api'
+                c.lib library: 'cmsis-st-device-stm32f1xx', linkage: 'api'
+                c.lib library: 'cpputest', linkage: 'static'
+                c.lib library: 'cpputest-ext', linkage: 'static'
+                c {
+                    source {
+                        srcDirs "src/firmware/c", "src/shared/c", "src/test/c"
+                        include "**/*.c"
+                    }
+
+                    exportedHeaders {
+                        srcDirs "src/firmware/include", "src/shared/include"
+                    }
+                }
+
+                cpp.lib library: 'cmsis-st-core', linkage: 'api'
+                cpp.lib library: 'cmsis-st-device-stm32f1xx', linkage: 'api'
+                cpp.lib library: 'cpputest', linkage: 'static'
+                cpp.lib library: 'cpputest-ext', linkage: 'static'
+                cpp {
+                    source {
+                        srcDirs "src/firmware/cpp", "src/shared/cpp", "src/test/cpp"
+                        include "**/*.cpp", "**/*.c++", "**/*.cc", "**/*.C"
+                        exclude "**/main.cpp"
+                    }
+
+                    exportedHeaders {
+                        srcDirs "src/firmware/include", "src/shared/include", "src/test/include"
+                    }
+                }
+            }
+
+            binaries.all {
+                cCompiler.define "${processorType}"
+                cppCompiler.define "${processorType}"
+                cppCompiler.define "UTEST"
+                cppCompiler.define "UTESTRUNNER"
+                cppCompiler.define "CPPUTESTRUNNER"
+
+                cppCompiler.args "--coverage"
+
+                if (toolChain in Gcc && buildType == buildTypes.debug) {
+                    cppCompiler.define "DEBUG"
+                    cCompiler.define "DEBUG"
+                    cppCompiler.args "-g", "-O0"
+                    cCompiler.args "-g", "-O0"
+                    assembler.args "-g", "-O0"
+                } else if (toolChain in Gcc && buildType != buildTypes.debug) {
+                    cppCompiler.define "NDEBUG"
+                    cCompiler.define "NDEBUG"
+                    cppCompiler.args "-Os"
+                    cCompiler.args "-Os"
+                    assembler.args "-Os"
+                }
+            }
+        }
+
+    }
+
+    tasks { t ->
+        $.components.firmware.binaries.each { binary ->
+            def processTask = binary.tasks.taskName("process")
+
+            t.create(processTask) {
+                def parentPath = binary.tasks.link.outputFile.parent
+                def elfFile = binary.tasks.link.outputFile
+                def baseFile = elfFile.name.replace('.elf', '').replace('.exe', '')
+                def binFile = new File(parentPath, baseFile + ".bin")
+                def hexFile = new File(parentPath, baseFile + ".hex")
+                def lstFile = new File(parentPath, baseFile + ".lst")
+                def sizeFile = new File(parentPath, baseFile + ".size")
+
+                dependsOn binary.tasks.link
+
+                inputs.file elfFile 
+                outputs.files binFile, hexFile, lstFile, sizeFile
+
+                doFirst {
+                    if (binary.toolChain in Gcc || binary.toolChain in Clang) {
+
+                        ['.tools/' + project.ext.toolchainName + '/bin/arm-none-eabi-objcopy', '-O', 'binary', elfFile, binFile].execute()
+                        ['.tools/' + project.ext.toolchainName + '/bin/arm-none-eabi-objcopy', '-O', 'ihex', elfFile, hexFile].execute()
+                        lstFile.write(['.tools/' + project.ext.toolchainName + '/bin/arm-none-eabi-objdump', '-Sdh', elfFile].execute().inputStream.text)
+
+                        def sizeReport = ['.tools/' + project.ext.toolchainName + '/bin/arm-none-eabi-size', elfFile].execute().inputStream.text
+                        sizeFile.write sizeReport
+                        println "\n" + sizeReport
+
+                        println " -> " + binFile
+                        println " -> " + hexFile
+                        println " -> " + lstFile
+                    }
+                }
+            }
+
+            binary.tasks.build.dependsOn processTask
+        }
+
+        $.components.utestrunner.binaries.each { binary ->
+            def utestTask = binary.tasks.taskName("check")
+            t.create(utestTask) {
+                dependsOn binary.tasks.link
+
+                doLast {
+                    def execloc = 'build/exe/utestrunner/'
+     
+                    println "\n==== CppUTest ===="
+                    if (osMatch("windows")) {
+                        execloc = execloc + 'x86_64-pc-cygwin/'
+                    } else if (osMatch("mac")) {
+                        execloc = execloc + 'osx_x86-64/'
+                    } else if (osMatch("linux")) {
+                        execloc = execloc + 'x86_64-linux/'
+                    }
+
+                    def proc = [execloc + 'utestrunner', '-c', '-ojunit', '-v'].execute()
+                    proc.in.eachLine { line -> println line }
+                    proc.err.eachLine { line -> println 'ERROR: ' + line }
+                    def returnCode = proc.waitFor()
+
+                    FileTree tree = fileTree(dir: '.', include: '**/cpputest*.xml')
+                    tree.each { File file ->
+                        file.renameTo(execloc + file.name)
+                    }
+
+                    if (returnCode != 0) {
+                        throw new GradleException('CppUTest returned ' + returnCode)
+                    }
+                }
+            }
+
+            binary.tasks.build.dependsOn utestTask
+        }
+    }
+
+}
+
+task init {
+    def toolDir = new File('.tools')
+    def gccToolchain = new File(toolDir, project.ext.toolchainName + "-" + project.ext.toolchainTimestamp + "-" + project.ext.toolchainPlatform + "." + project.ext.toolchainExtension)
+    def gccToolchainExtracted = new File(toolDir, project.ext.toolchainName)
+
+    if(!toolDir.exists()) {
+        toolDir.mkdirs()
+    }
+
+    if (!gccToolchain.exists()) {
+        new URL(project.ext.toolchainUrl).withInputStream {
+            i -> gccToolchain.withOutputStream { it << i }
+        }
+    }
+
+    if (!gccToolchainExtracted.exists() && gccToolchain.exists()) {
+        if (project.ext.toolchainExtension.contains("tar.bz2")) {
+            def proc = ["tar", "-C", ".tools/", "-xjf",
+                ".tools/" + project.ext.toolchainName + "-" + project.ext.toolchainTimestamp + "-" + project.ext.toolchainPlatform + "." + project.ext.toolchainExtension].execute()
+            proc.err.eachLine { line -> println 'ERROR: ' + line }
+            proc.waitFor()
+        } else {
+            copy {
+                from zipTree(gccToolchain)
+                into gccToolchainExtracted
+            }
+        }
+    } else if (!gccToolchainExtracted.exists()) {
+        println 'ERROR'
+    }
+}
+
+def osShortName(osName) {
+    def shortName
+    if (osName.contains("windows")) {
+        shortName = "win32"
+    } else if (osName.contains("mac")) {
+        shortName = "mac"
+    } else if (osName.contains("linux")) {
+        shortName = "linux"
+    }
+
+    return shortName
+}
+
+def osMatch(name) {
+    return System.getProperty("os.name").toLowerCase().contains(name)
+}
+
+def findFileRecursive(directoryName, filePattern) {
+    def fileFound
+    def directory = new File(directoryName)
+
+    if (directory.isDirectory()) {
+        def findFilenameClosure = {
+            if (filePattern.matcher(it.name).find()) {
+                fileFound = it
+            }
+        }
+        directory.eachFileRecurse(findFilenameClosure)
+    }
+
+    return fileFound
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '3.3'
+}

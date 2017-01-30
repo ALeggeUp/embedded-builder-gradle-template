@@ -1,0 +1,104 @@
+# Gradle
+.gradle
+build
+
+# Eclipse project files
+.classpath
+.project
+.settings
+.checkstyle
+.tern-project
+
+# Compiled Binaries
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Archive Packages
+# it's better to unpack these files and commit the raw source
+# git has its own built in compression methods
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Numerous always-ignore extensions
+*.diff
+*.err
+*.iml
+*.orig
+*.log
+*.rej
+*.swo
+*.swp
+*.vi
+*~
+*.sass-cache
+
+# Python leftovers
+*.egg
+*.egg-info
+*.mo
+.installed.cfg
+.coverage
+.tox
+.mr.developer.cfg
+.project
+.pydevproject
+eggs
+parts
+sdist
+develop-eggs
+pip-log.txt
+nosetests.xml
+
+# OS or Editor folders
+*.esproj
+*.sublime-project
+*.sublime-workspace
+.faces-config.xml.jsfdia
+.DS_Store
+.cache
+.project
+.settings
+.tmproj
+Thumbs.db
+nbproject
+
+# Dreamweaver added files
+_notes
+dwsync.xml
+
+# Komodo
+*.komodoproject
+.komodotools
+
+# Folders to ignore
+.hg
+.svn
+.CVS
+.idea
+.tools
+intermediate
+publish
+target
+
+# Node/Bower directories
+node_modules
+dist
+.tmp
+bower_components
+
+# build script local files
+build/buildinfo.properties
+build/config/buildinfo.properties
+
+# Local workarea folder
+workarea
