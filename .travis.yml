@@ -6,4 +6,4 @@ install: true
 env:
   - TERM=dumb
 script:
-  - ./gradlew init
+  - ./gradlew --stacktrace init
