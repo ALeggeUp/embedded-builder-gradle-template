@@ -2,6 +2,8 @@ language: groovy
 jdk: oraclejdk8
 before_install:
   - chmod +x gradlew
+install: true
+env:
+  - TERM=dumb
 script:
-  - TERM=dumb ./gradlew connectedInstrumentTest
-  - echo $TRAVIS_BUILD_DIR
+  - ./gradlew init
