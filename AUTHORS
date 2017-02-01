@@ -1,3 +1,6 @@
 
 The author of embedded-builder-gradle-template is Stephen Legge <stephen@aleggeup.com>.
 
+The examples in this project were taken from the CppUTest examples unchanged.
+The current main authors of CppUTest are James Grenning and Bas Vodde.
+
