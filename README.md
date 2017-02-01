@@ -21,7 +21,7 @@ Retrieve Source
 
 To clone embedded-builder-gradle-template Project:
 
-    git clone git@github.com:aleggeup/[project-name].git
+    git clone git@github.com:ALeggeUp/embedded-builder-gradle-template.git
 
 
 System requirements
