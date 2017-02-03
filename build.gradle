@@ -40,7 +40,7 @@ ext {
     def timestampFormat = new java.text.SimpleDateFormat('yyyyMMddHHmm')
     timestampFormat.timeZone = TimeZone.getTimeZone("UTC")
 
-    project.version = baseVersion + "-" + timestampFormat.format(new Date()) + "Z-SNAPSHOT"
+    project.version = baseVersion
 
     toolchainName = "gcc-arm-none-eabi-5_4-2016q3"
     toolchainTimestamp = "20160926"
