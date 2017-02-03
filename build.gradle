@@ -301,6 +301,47 @@ model {
 
     components {
 
+        'interface'(NativeLibrarySpec) {
+            targetPlatform "osx_x86-64"
+            targetPlatform "x86_64-pc-cygwin"
+            targetPlatform "x86_64-linux"
+            targetPlatform "cortex-m3"
+
+            targetBuildTypes "debug", "release"
+            targetFlavors "community"
+
+            sources {
+
+                c {
+                    source {
+                        srcDirs "src/interface/c"
+                        include "**/*.c"
+                    }
+
+                    exportedHeaders {
+                        srcDirs "src/interface/include"
+                    }
+                }
+
+                cpp {
+                    source {
+                        srcDirs "src/interface/cpp"
+                        include "**/*.cpp", "**/*.c++", "**/*.cc", "**/*.C"
+                    }
+
+                    exportedHeaders {
+                        srcDirs "src/interface/include"
+                    }
+                }
+            }
+
+            binaries {
+                all {
+                    buildable = !name.endsWith("SharedLibrary")
+                }
+            }
+        }
+
         firmware(NativeExecutableSpec) {
             targetPlatform "cortex-m3"
             targetBuildTypes "debug", "release"
@@ -316,6 +357,7 @@ model {
                     }
                 }
 
+                c.lib library: 'interface', linkage: 'static'
                 c.lib library: 'cmsis-st-core', linkage: 'api'
                 c.lib library: 'cmsis-st-device-stm32f1xx', linkage: 'api'
                 c {
@@ -329,6 +371,7 @@ model {
                     }
                 }
 
+                cpp.lib library: 'interface', linkage: 'static'
                 cpp.lib library: 'cmsis-st-core', linkage: 'api'
                 cpp.lib library: 'cmsis-st-device-stm32f1xx', linkage: 'api'
                 cpp {
@@ -382,9 +425,11 @@ model {
                     source {
                         srcDirs "src/shared/asm", "src/test/asm"
                         include "**/*.s", "**/*.S"
+                        exclude "**/impl/**"
                     }
                 }
 
+                c.lib library: 'interface', linkage: 'static'
                 c.lib library: 'cmsis-st-core', linkage: 'api'
                 c.lib library: 'cmsis-st-device-stm32f1xx', linkage: 'api'
                 c.lib library: 'cpputest', linkage: 'static'
@@ -393,6 +438,7 @@ model {
                     source {
                         srcDirs "src/firmware/c", "src/shared/c", "src/test/c"
                         include "**/*.c"
+                        exclude "**/impl/**"
                     }
 
                     exportedHeaders {
@@ -400,6 +446,7 @@ model {
                     }
                 }
 
+                cpp.lib library: 'interface', linkage: 'static'
                 cpp.lib library: 'cmsis-st-core', linkage: 'api'
                 cpp.lib library: 'cmsis-st-device-stm32f1xx', linkage: 'api'
                 cpp.lib library: 'cpputest', linkage: 'static'
@@ -408,7 +455,7 @@ model {
                     source {
                         srcDirs "src/firmware/cpp", "src/shared/cpp", "src/test/cpp"
                         include "**/*.cpp", "**/*.c++", "**/*.cc", "**/*.C"
-                        exclude "**/main.cpp"
+                        exclude "**/impl/**"
                     }
 
                     exportedHeaders {
