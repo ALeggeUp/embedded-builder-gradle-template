@@ -547,7 +547,7 @@ model {
                         execloc = execloc + 'x86_64-linux/'
                     }
 
-                    def proc = [execloc + 'utestrunner', '-c', '-ojunit', '-v'].execute()
+                    def proc = [project.file(execloc + 'utestrunner'), '-c', '-ojunit', '-v'].execute()
                     proc.in.eachLine { line -> println line }
                     proc.err.eachLine { line -> println 'ERROR: ' + line }
                     def returnCode = proc.waitFor()
