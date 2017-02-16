@@ -35,6 +35,8 @@ apply plugin: 'c'
 apply plugin: 'cpp'
 apply plugin: 'assembler'
 
+apply from: "gradle/repositories.gradle"
+
 ext {
     baseVersion = '0.9.0'
     def timestampFormat = new java.text.SimpleDateFormat('yyyyMMddHHmm')
@@ -105,35 +107,6 @@ model {
 
     flavors {
         community
-    }
-
-    repositories {
-        libs(PrebuiltLibraries) {
-            def os = osShortName(System.getProperty("os.name").toLowerCase())
-            def osArch = System.getProperty("os.arch").toLowerCase()
-
-            'cmsis-st-core' {
-                headers.srcDir "vendor/ST/CMSIS/Include"
-            }
-
-            'cmsis-st-device-stm32f1xx' {
-                headers.srcDir "vendor/ST/CMSIS/Device/ST/STM32F1xx/Include"
-            }
-
-            'cpputest' {
-                headers.srcDirs "vendor/cpputest/include", "vendor/cpputest/" + os + "/" + osArch + "/include"
-                binaries.withType(StaticLibraryBinary) {
-                    staticLibraryFile = file("vendor/cpputest/" + os + "/" + osArch + "/lib/libCppUTest.a")
-                }
-            }
-
-            'cpputest-ext' {
-                headers.srcDirs "vendor/cpputest/include", "vendor/cpputest/" + os + "/" + osArch + "/include"
-                binaries.withType(StaticLibraryBinary) {
-                    staticLibraryFile = file("vendor/cpputest/" + os + "/" + osArch + "/lib/libCppUTestExt.a")
-                }
-            }
-        }
     }
 
     toolChains {
