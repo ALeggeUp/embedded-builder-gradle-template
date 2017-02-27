@@ -1,0 +1,218 @@
+/*
+ * repository-cpputest.gradle
+ *
+ * Created by Stephen Legge <stephen@aleggeup.com>, February 2017
+ *
+ * Copyright (C) 2016-2017 [ A Legge Up ], Stephen Legge <stephen@aleggeup.com>
+ * All Rights Reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of [ A Legge Up ], [ A Legge Up Consulting] nor the
+ *       names of its contributors may be used to endorse or promote products
+ *       derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+
+model {
+/*
+libssl.a libupgrade.a libwpa.a libwpa2.a libwps.a
+libmain.a libat.a libgcc.a libmain.a libnet80211.a libpp.a
+libairkiss.a libcrypto.a libdriver.a libespnow.a libjson.a liblwip.a
+liblwip_536.a libmesh.a libphy.a libpwm.a libsmartconfig.a
+*/
+    repositories {
+        libs(PrebuiltLibraries) {
+
+
+            'esp8266-nonos-lwip' {
+                headers.srcDirs ".tools/ESP8266_NONOS_SDK/include"
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file(".tools/ESP8266_NONOS_SDK/lib/liblwip.a")
+                }
+            }
+
+            'esp8266-nonos-lwip_536' {
+                headers.srcDirs ".tools/ESP8266_NONOS_SDK/include"
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file(".tools/ESP8266_NONOS_SDK/lib/liblwip_536.a")
+                }
+            }
+
+
+
+            'esp8266-nonos-ssl' {
+                headers.srcDirs ".tools/ESP8266_NONOS_SDK/include"
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file(".tools/ESP8266_NONOS_SDK/lib/libssl.a")
+                }
+            }
+
+            'esp8266-nonos-upgrade' {
+                headers.srcDirs ".tools/ESP8266_NONOS_SDK/include"
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file(".tools/ESP8266_NONOS_SDK/lib/libupgrade.a")
+                }
+            }
+
+            'esp8266-nonos-wpa' {
+                headers.srcDirs ".tools/ESP8266_NONOS_SDK/include"
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file(".tools/ESP8266_NONOS_SDK/lib/libwpa.a")
+                }
+            }
+
+            'esp8266-nonos-wpa2' {
+                headers.srcDirs ".tools/ESP8266_NONOS_SDK/include"
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file(".tools/ESP8266_NONOS_SDK/lib/libwpa2.a")
+                }
+            }
+
+            'esp8266-nonos-wps' {
+                headers.srcDirs ".tools/ESP8266_NONOS_SDK/include"
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file(".tools/ESP8266_NONOS_SDK/lib/libwps.a")
+                }
+            }
+
+            'esp8266-nonos-wip_536' {
+                headers.srcDirs ".tools/ESP8266_NONOS_SDK/include"
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file(".tools/ESP8266_NONOS_SDK/lib/libwip_536.a")
+                }
+            }
+
+            'esp8266-nonos-mesh' {
+                headers.srcDirs ".tools/ESP8266_NONOS_SDK/include"
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file(".tools/ESP8266_NONOS_SDK/lib/libmesh.a")
+                }
+            }
+
+            'esp8266-nonos-phy' {
+                headers.srcDirs ".tools/ESP8266_NONOS_SDK/include"
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file(".tools/ESP8266_NONOS_SDK/lib/libphy.a")
+                }
+            }
+
+            'esp8266-nonos-pwm' {
+                headers.srcDirs ".tools/ESP8266_NONOS_SDK/include"
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file(".tools/ESP8266_NONOS_SDK/lib/libpwm.a")
+                }
+            }
+
+            'esp8266-nonos-smartconfig' {
+                headers.srcDirs ".tools/ESP8266_NONOS_SDK/include"
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file(".tools/ESP8266_NONOS_SDK/lib/libsmartconfig.a")
+                }
+            }
+
+
+
+            'esp8266-nonos-wip' {
+                headers.srcDirs ".tools/ESP8266_NONOS_SDK/include"
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file(".tools/ESP8266_NONOS_SDK/lib/libwip.a")
+                }
+            }
+
+            'esp8266-nonos-json' {
+                headers.srcDirs ".tools/ESP8266_NONOS_SDK/include"
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file(".tools/ESP8266_NONOS_SDK/lib/libjson.a")
+                }
+            }
+
+            'esp8266-nonos-airkiss' {
+                headers.srcDirs ".tools/ESP8266_NONOS_SDK/include"
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file(".tools/ESP8266_NONOS_SDK/lib/libairkiss.a")
+                }
+            }
+            'esp8266-nonos-crypto' {
+                headers.srcDirs ".tools/ESP8266_NONOS_SDK/include"
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file(".tools/ESP8266_NONOS_SDK/lib/libcrypto.a")
+                }
+            }
+            'esp8266-nonos-driver' {
+                headers.srcDirs ".tools/ESP8266_NONOS_SDK/include"
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file(".tools/ESP8266_NONOS_SDK/lib/libdriver.a")
+                }
+            }
+            'esp8266-nonos-espnow' {
+                headers.srcDirs ".tools/ESP8266_NONOS_SDK/include"
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file(".tools/ESP8266_NONOS_SDK/lib/libespnow.a")
+                }
+            }
+
+
+            'esp8266-nonos-main' {
+                headers.srcDirs ".tools/ESP8266_NONOS_SDK/include"
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file(".tools/ESP8266_NONOS_SDK/lib/libmain.a")
+                }
+            }
+
+            'esp8266-nonos-gcc' {
+                headers.srcDirs ".tools/ESP8266_NONOS_SDK/include"
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file(".tools/ESP8266_NONOS_SDK/lib/libgcc.a")
+                }
+            }
+
+            'esp8266-nonos-net80211' {
+                headers.srcDirs ".tools/ESP8266_NONOS_SDK/include"
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file(".tools/ESP8266_NONOS_SDK/lib/libnet80211.a")
+                }
+            }
+
+            'esp8266-nonos-at' {
+                headers.srcDirs ".tools/ESP8266_NONOS_SDK/include"
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file(".tools/ESP8266_NONOS_SDK/lib/libat.a")
+                }
+            }
+
+            'esp8266-nonos-pp' {
+                headers.srcDirs ".tools/ESP8266_NONOS_SDK/include"
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file(".tools/ESP8266_NONOS_SDK/lib/libpp.a")
+                }
+            }
+
+            'esp8266-nonos-libdriver' {
+                headers.srcDirs ".tools/ESP8266_NONOS_SDK/driver_lib/include"
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file(".tools/ESP8266_NONOS_SDK/lib/libdriver.a")
+                }
+            }
+
+        }
+    }
+}

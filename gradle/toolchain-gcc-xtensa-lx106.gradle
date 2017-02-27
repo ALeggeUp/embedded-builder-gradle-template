@@ -1,0 +1,128 @@
+/*
+ * toolchain-gcc-xtensa-lx106.gradle
+ *
+ * Created by Stephen Legge <stephen@aleggeup.com>, February 2017
+ *
+ * Copyright (C) 2016-2017 [ A Legge Up ], Stephen Legge <stephen@aleggeup.com>
+ * All Rights Reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of [ A Legge Up ], [ A Legge Up Consulting] nor the
+ *       names of its contributors may be used to endorse or promote products
+ *       derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+model {
+
+    platforms {
+        'xtensa-lx106-elf' {
+            architecture "xtensa-lx106-elf"
+        }
+    }
+
+    toolChains {
+
+        esp8266(Gcc) {
+            target("xtensa-lx106-elf") {
+                path '.tools/xtensa-lx106-elf/bin/'
+
+                cppCompiler.executable = 'xtensa-lx106-elf-gcc'
+                cCompiler.executable = 'xtensa-lx106-elf-gcc'
+                assembler.executable = 'xtensa-lx106-elf-g++'
+                linker.executable = 'xtensa-lx106-elf-g++'
+                staticLibArchiver.executable = 'xtensa-lx106-elf-ar'
+
+                cppCompiler.withArguments { args ->
+                    args << "-Wpointer-arith"
+                    args << "-Wundef"
+                    args << "-Werror"
+                    args << "-Wl,-EL"
+                    args << "-fno-inline-functions"
+                    args << "-nostdlib"
+                    args << "-mlongcalls"
+                    args << "-mtext-section-literals"
+                    args << "-mno-serialize-volatile"
+                    args << "-D__ets__"
+                    args << "-DICACHE_FLASH"
+                }
+
+                cCompiler.withArguments { args ->
+                    args << "-std=gnu90"
+                    args << "-Wpointer-arith"
+                    args << "-Wundef"
+                    args << "-Werror"
+                    args << "-Wl,-EL"
+                    args << "-fno-inline-functions"
+                    args << "-nostdlib"
+                    args << "-mlongcalls"
+                    args << "-mtext-section-literals"
+                    args << "-mno-serialize-volatile"
+                    args << "-D__ets__"
+                    args << "-DICACHE_FLASH"
+                }
+
+                assembler.withArguments { args ->
+                    args << "-std=gnu++11"
+                    args << "-fdata-sections"
+                    args << "-ffunction-sections"
+                    args << "-fmessage-length=0"
+                    args << "-fno-common"
+                    args << "-fno-exceptions"
+                    args << "-fomit-frame-pointer"
+                    args << "-Wall"
+                    args << "-Wextra"
+                    args << "-MMD"
+                    args << "-MP"
+                    args << "-x"
+                    args << "assembler-with-cpp"
+                }
+
+                linker.withArguments { args ->
+                    args << "-nostdlib"
+                    args << "-u" << "call_user_start"
+                    args << "-Wl,--no-check-sections"
+                    args << "-Wl,--gc-sections"
+                    args << "-Wl,-static"
+                    // args << "-Wl,-EL"
+                    args << "-Wl,--start-group"
+                    // args << "-lc"
+                    // args << "-lgcc"
+                    // args << "-lstdc++"
+                    // args << "-lsupc++"
+                    args << "-L.tools/ESP8266_NONOS_SDK/lib"
+                    args << "-Tsrc/firmware/linker/eagle.app.v6.ld"
+                    // args << "-Tsrc/firmware/linker/eagle.app.v6.new.512.app1.ld"
+                    // args << "-Tsrc/firmware/linker/eagle.app.v6.new.512.app2.ld"
+                    // args << "-lc"
+                    // args << "-lm"
+                    args << "-lgcc"
+                    args << "-lc"
+                    args << "-lcrypto"
+                    args << "-lnet80211"
+                    args << "-lwpa"
+                    args << "-Wl,--end-group"
+                }
+            }
+        }
+    }
+
+}

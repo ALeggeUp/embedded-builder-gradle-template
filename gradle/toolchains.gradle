@@ -32,6 +32,8 @@
  */
 
 apply from: "gradle/toolchain-clang-osx.gradle"
-apply from: "gradle/toolchain-gcc-cortex-m3.gradle"
+apply from: "gradle/toolchain-gcc-STM32F103xB.gradle"
 apply from: "gradle/toolchain-gcc-cygwin.gradle"
 apply from: "gradle/toolchain-gcc-linux.gradle"
+apply from: "gradle/toolchain-gcc-xtensa-lx106.gradle"
+

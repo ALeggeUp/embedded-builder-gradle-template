@@ -1,5 +1,5 @@
 /*
- * toolchain-gcc-cortex-m3.gradle
+ * toolchain-gcc-STM32F103xB.gradle
  *
  * Created by Stephen Legge <stephen@aleggeup.com>, February 2017
  *
@@ -33,10 +33,17 @@
 
 model {
 
+    platforms {
+
+        'STM32F103xB' {
+            architecture "arm-none-eabi"
+        }
+    }
+
     toolChains {
 
         arm(Gcc) {
-            target("cortex-m3") {
+            target("STM32F103xB") {
                 path '.tools/' + project.ext.toolchainName + '/bin/'
 
                 cppCompiler.executable = 'arm-none-eabi-g++'

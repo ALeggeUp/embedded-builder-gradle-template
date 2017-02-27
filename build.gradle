@@ -35,41 +35,9 @@ apply plugin: 'c'
 apply plugin: 'cpp'
 apply plugin: 'assembler'
 
+apply from: "gradle/common-functions.gradle"
 apply from: "gradle/repositories.gradle"
 apply from: "gradle/toolchains.gradle"
-
-ext {
-    baseVersion = '0.9.0'
-    def timestampFormat = new java.text.SimpleDateFormat('yyyyMMddHHmm')
-    timestampFormat.timeZone = TimeZone.getTimeZone("UTC")
-
-    project.version = baseVersion
-
-    toolchainName = "gcc-arm-none-eabi-5_4-2016q3"
-    toolchainTimestamp = "20160926"
-    toolchainPlatform = ""
-    toolchainExtension = "tar.bz2"
-
-    String osName = System.getProperty("os.name").toLowerCase();
-    if (osName.contains("windows")) {
-        toolchainPlatform = "win32"
-        toolchainExtension = "zip"
-    } else if (osName.contains("mac")) {
-        toolchainPlatform = "mac"
-        toolchainExtension = "tar.bz2"
-    } else if (osName.contains("linux")) {
-        toolchainPlatform = "linux"
-        toolchainExtension = "tar.bz2"
-    }
-
-    // https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/gcc-arm-none-eabi-5_4-2016q3-20160926-mac.tar.bz2
-    // https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2
-    // https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/gcc-arm-none-eabi-5_4-2016q3-20160926-win32.zip
-
-    // https://developer.arm.com/-/media/Files/downloads/gnu-rm/6-2016q4/gcc-arm-none-eabi-6_2-2016q4-20161216-win32-zip.zip
-
-    toolchainUrl = "https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/" + toolchainName + "-" + toolchainTimestamp + "-" + toolchainPlatform + "." + toolchainExtension
-}
 
 description = """
 Example embedded project with CppUTest examples using Gradle
@@ -95,10 +63,6 @@ model {
             architecture "x86_64"
             operatingSystem "osx"
         }
-
-        'cortex-m3' {
-            architecture "arm-none-eabi"
-        }
     }
 
     buildTypes {
@@ -116,7 +80,8 @@ model {
             targetPlatform "osx_x86-64"
             targetPlatform "x86_64-pc-cygwin"
             targetPlatform "x86_64-linux"
-            targetPlatform "cortex-m3"
+            targetPlatform "STM32F103xB"
+            targetPlatform "xtensa-lx106-elf"
 
             targetBuildTypes "debug", "release"
             targetFlavors "community"
@@ -127,6 +92,7 @@ model {
                     source {
                         srcDirs "src/interface/c"
                         include "**/*.c"
+                        exclude "**/platform/**"
                     }
 
                     exportedHeaders {
@@ -138,6 +104,7 @@ model {
                     source {
                         srcDirs "src/interface/cpp"
                         include "**/*.cpp", "**/*.c++", "**/*.cc", "**/*.C"
+                        exclude "**/platform/**"
                     }
 
                     exportedHeaders {
@@ -153,8 +120,9 @@ model {
             }
         }
 
-        firmware(NativeExecutableSpec) {
-            targetPlatform "cortex-m3"
+        firmware(NativeExecutableSpec) { f ->
+            targetPlatform "STM32F103xB"
+            targetPlatform "xtensa-lx106-elf"
             targetBuildTypes "debug", "release"
             targetFlavors "community"
             baseName imageBaseName + "-" + project.version + ".elf"
@@ -165,16 +133,19 @@ model {
                     source {
                         srcDirs "src/firmware/asm", "src/shared/asm"
                         include "**/*.s", "**/*.S"
+                        exclude "**/platform/**"
                     }
                 }
 
-                c.lib library: 'interface', linkage: 'static'
-                c.lib library: 'cmsis-st-core', linkage: 'api'
-                c.lib library: 'cmsis-st-device-stm32f1xx', linkage: 'api'
                 c {
+                    lib library: 'esp8266-nonos-main', linkage: 'static'
+                    lib library: 'esp8266-nonos-gcc', linkage: 'static'
+                    lib library: 'interface', linkage: 'static'
+
                     source {
                         srcDirs "src/firmware/c", "src/shared/c"
                         include "**/*.c"
+                        exclude "**/platform/**"
                     }
 
                     exportedHeaders {
@@ -182,14 +153,15 @@ model {
                     }
                 }
 
-                cpp.lib library: 'interface', linkage: 'static'
-                cpp.lib library: 'cmsis-st-core', linkage: 'api'
-                cpp.lib library: 'cmsis-st-device-stm32f1xx', linkage: 'api'
                 cpp {
+                    lib library: 'esp8266-nonos-main', linkage: 'static'
+                    lib library: 'esp8266-nonos-gcc', linkage: 'static'
+                    lib library: 'interface', linkage: 'static'
 
                     source {
                         srcDirs "src/firmware/cpp", "src/shared/cpp"
                         include "**/*.cpp", "**/*.c++", "**/*.cc", "**/*.C"
+                        exclude "**/platform/**"
                     }
 
                     exportedHeaders {
@@ -200,10 +172,72 @@ model {
 
             binaries {
                 all {
-                    cCompiler.define "${processorType}"
-                    cppCompiler.define "${processorType}"
 
-                    linker.args "-Wl,-Map=build/exe/firmware/${buildType.name}/${baseName}.map,--cref"
+                    if (targetPlatform.name.startsWith("STM32")) {
+                        sources {
+                            platformSTM32F103xBAsm(AssemblerSourceSet) {
+                                source.srcDir "src/firmware/asm/platform/STM32F103xB"
+                                source.include "**/*.s", "**/*.S"
+                                lib library: 'cmsis-st-core', linkage: 'api'
+                                lib library: 'cmsis-st-device-stm32f1xx', linkage: 'api'
+                            }
+
+                            platformSTM32F103xBC(CSourceSet) {
+                                source.srcDir "src/firmware/c/platform/STM32F103xB"
+                                source.include "**/*.c"
+                                exportedHeaders.srcDirs "src/firmware/include"
+                                lib library: 'cmsis-st-core', linkage: 'api'
+                                lib library: 'cmsis-st-device-stm32f1xx', linkage: 'api'
+                            }
+
+                            platformSTM32F103xBCpp(CppSourceSet) {
+                                source.srcDir "src/firmware/cpp/platform/STM32F103xB"
+                                source.include "**/*.cpp", "**/*.c++", "**/*.cc", "**/*.C"
+                                exportedHeaders.srcDirs "src/firmware/include"
+                                lib library: 'cmsis-st-core', linkage: 'api'
+                                lib library: 'cmsis-st-device-stm32f1xx', linkage: 'api'
+                            }
+                        }
+                    } else if (targetPlatform.name.startsWith("xtensa-lx106")) {
+                        sources {
+                            platformSTM32F103xBAsm(AssemblerSourceSet) {
+                                source.srcDir "src/firmware/asm/platform/xtensa-lx106-elf"
+                                source.include "**/*.s", "**/*.S"
+                                lib library: 'esp8266-nonos-main', linkage: 'static'
+                                lib library: 'esp8266-nonos-gcc', linkage: 'static'
+                            }
+
+                            platformSTM32F103xBC(CSourceSet) {
+                                source.srcDir "src/firmware/c/platform/xtensa-lx106-elf"
+                                source.include "**/*.c"
+                                exportedHeaders.srcDirs "src/firmware/include"
+                                lib library: 'esp8266-nonos-main', linkage: 'static'
+                                lib library: 'esp8266-nonos-gcc', linkage: 'static'
+                                lib library: 'esp8266-nonos-libdriver', linkage: 'static'
+                            }
+
+                            platformSTM32F103xBCpp(CppSourceSet) {
+                                source.srcDir "src/firmware/cpp/platform/xtensa-lx106-elf"
+                                source.include "**/*.cpp", "**/*.c++", "**/*.cc", "**/*.C"
+                                exportedHeaders.srcDirs "src/firmware/include"
+                                lib library: 'esp8266-nonos-main', linkage: 'static'
+                                lib library: 'esp8266-nonos-gcc', linkage: 'static'
+                                lib library: 'esp8266-nonos-pp', linkage: 'static'
+                                lib library: 'esp8266-nonos-phy', linkage: 'static'
+                                lib library: 'esp8266-nonos-net80211', linkage: 'static'
+                                lib library: 'esp8266-nonos-lwip', linkage: 'static'
+                                lib library: 'esp8266-nonos-wpa', linkage: 'static'
+                                lib library: 'esp8266-nonos-wps', linkage: 'static'
+                            }
+                        }
+                    }
+
+                    if (targetPlatform.name.startsWith("STM32")) {
+                        cCompiler.define targetPlatform.name
+                        cppCompiler.define targetPlatform.name
+                    }
+
+                    linker.args "-Wl,-Map=build/exe/" + component.name + "/" + targetPlatform.name + "/" + buildType.name + "/" + "${baseName}.map,--cref"
 
                     if (toolChain in Gcc && buildType == buildTypes.debug) {
                         cppCompiler.define "DEBUG"
@@ -220,7 +254,6 @@ model {
                     }
                 }
             }
-
         }
 
         utestrunner(NativeExecutableSpec) {
@@ -237,19 +270,22 @@ model {
                         srcDirs "src/shared/asm", "src/test/asm"
                         include "**/*.s", "**/*.S"
                         exclude "**/impl/**"
+                        exclude "**/platform/**"
                     }
                 }
 
-                c.lib library: 'interface', linkage: 'static'
-                c.lib library: 'cmsis-st-core', linkage: 'api'
-                c.lib library: 'cmsis-st-device-stm32f1xx', linkage: 'api'
-                c.lib library: 'cpputest', linkage: 'static'
-                c.lib library: 'cpputest-ext', linkage: 'static'
                 c {
+                    lib library: 'interface', linkage: 'static'
+                    lib library: 'cmsis-st-core', linkage: 'api'
+                    lib library: 'cmsis-st-device-stm32f1xx', linkage: 'api'
+                    lib library: 'cpputest', linkage: 'static'
+                    lib library: 'cpputest-ext', linkage: 'static'
+
                     source {
                         srcDirs "src/firmware/c", "src/shared/c", "src/test/c"
                         include "**/*.c"
                         exclude "**/impl/**"
+                        exclude "**/platform/**"
                     }
 
                     exportedHeaders {
@@ -257,16 +293,18 @@ model {
                     }
                 }
 
-                cpp.lib library: 'interface', linkage: 'static'
-                cpp.lib library: 'cmsis-st-core', linkage: 'api'
-                cpp.lib library: 'cmsis-st-device-stm32f1xx', linkage: 'api'
-                cpp.lib library: 'cpputest', linkage: 'static'
-                cpp.lib library: 'cpputest-ext', linkage: 'static'
                 cpp {
+                    lib library: 'interface', linkage: 'static'
+                    lib library: 'cmsis-st-core', linkage: 'api'
+                    lib library: 'cmsis-st-device-stm32f1xx', linkage: 'api'
+                    lib library: 'cpputest', linkage: 'static'
+                    lib library: 'cpputest-ext', linkage: 'static'
+
                     source {
                         srcDirs "src/firmware/cpp", "src/shared/cpp", "src/test/cpp"
                         include "**/*.cpp", "**/*.c++", "**/*.cc", "**/*.C"
                         exclude "**/impl/**"
+                        exclude "**/platform/**"
                     }
 
                     exportedHeaders {
@@ -276,8 +314,11 @@ model {
             }
 
             binaries.all {
-                cCompiler.define "${processorType}"
-                cppCompiler.define "${processorType}"
+                if (targetPlatform.name.startsWith("STM")) {
+                    cCompiler.define targetPlatform.name
+                    cppCompiler.define targetPlatform.name
+                }
+
                 cppCompiler.define "UTEST"
                 cppCompiler.define "UTESTRUNNER"
                 cppCompiler.define "CPPUTESTRUNNER"
@@ -307,13 +348,14 @@ model {
             def processTask = binary.tasks.taskName("process")
 
             t.create(processTask) {
-                def parentPath = binary.tasks.link.outputFile.parent
                 def elfFile = binary.tasks.link.outputFile
+                def parentPath = elfFile.parent
                 def baseFile = elfFile.name.replace('.elf', '').replace('.exe', '')
                 def binFile = new File(parentPath, baseFile + ".bin")
-                def hexFile = new File(parentPath, baseFile + ".hex")
+                def hexFile = new File(parentPath, baseFile + ".ihex")
                 def lstFile = new File(parentPath, baseFile + ".lst")
                 def sizeFile = new File(parentPath, baseFile + ".size")
+                def parentBase = parentPath.toString() + "/" + baseFile;
 
                 dependsOn binary.tasks.link
 
@@ -321,13 +363,41 @@ model {
                 outputs.files binFile, hexFile, lstFile, sizeFile
 
                 doFirst {
+
                     if (binary.toolChain in Gcc || binary.toolChain in Clang) {
 
-                        ['.tools/' + project.ext.toolchainName + '/bin/arm-none-eabi-objcopy', '-O', 'binary', elfFile, binFile].execute()
-                        ['.tools/' + project.ext.toolchainName + '/bin/arm-none-eabi-objcopy', '-O', 'ihex', elfFile, hexFile].execute()
-                        lstFile.write(['.tools/' + project.ext.toolchainName + '/bin/arm-none-eabi-objdump', '-Sdh', elfFile].execute().inputStream.text)
+                        [project.file(binary.toolChain.path[0].toString() + '/' + binary.targetPlatform.architecture.name + '-objcopy'), '-O', 'binary', elfFile, binFile].execute().waitFor()
+                        [project.file(binary.toolChain.path[0].toString() + '/' + binary.targetPlatform.architecture.name + '-objcopy'), '-O', 'ihex', elfFile, hexFile].execute().waitFor()
+/*
+                        lstFile.write([project.file(binary.toolChain.path[0].toString() + '/' + binary.targetPlatform.architecture.name + '-objdump'), '-Sdh', elfFile].execute().inputStream.text)
+*/
+                        project.file(parentBase + ".dump").write(
+                           [project.file(binary.toolChain.path[0].toString() + '/' + binary.targetPlatform.architecture.name + '-objdump'), '-x', '-s', elfFile].execute().inputStream.text)
+/*
+                        project.file(parentBase + ".S").write(
+                           [project.file(binary.toolChain.path[0].toString() + '/' + binary.targetPlatform.architecture.name + '-objdump'), '-S', elfFile].execute().inputStream.text)
+*/
+                        project.file(parentBase + ".sym").write(
+                           [project.file(binary.toolChain.path[0].toString() + '/' + binary.targetPlatform.architecture.name + '-nm'), '-g', elfFile].execute().inputStream.text)
 
-                        def sizeReport = ['.tools/' + project.ext.toolchainName + '/bin/arm-none-eabi-size', elfFile].execute().inputStream.text
+                        if (binary.targetPlatform.name.startsWith("xtensa-lx106-elf")) {
+                            [project.file(binary.toolChain.path[0].toString() + '/' + binary.targetPlatform.architecture.name + '-objcopy'), '--only-section', '.text', '-O', 'binary',
+                                elfFile, project.file(parentBase + ".text.bin")].execute().waitFor()
+
+                            [project.file(binary.toolChain.path[0].toString() + '/' + binary.targetPlatform.architecture.name + '-objcopy'), '--only-section', '.data', '-O', 'binary',
+                                elfFile, project.file(parentBase + ".data.bin")].execute().waitFor()
+
+                            [project.file(binary.toolChain.path[0].toString() + '/' + binary.targetPlatform.architecture.name + '-objcopy'), '--only-section', '.rodata', '-O', 'binary',
+                                elfFile, project.file(parentBase + ".rodata.bin")].execute().waitFor()
+
+                            [project.file(binary.toolChain.path[0].toString() + '/' + binary.targetPlatform.architecture.name + '-objcopy'), '--only-section', '.irom0.text', '-O', 'binary',
+                                elfFile, project.file(parentBase + ".irom0text.bin")].execute().waitFor()
+
+                            esp8266Combiner(parentBase, 0)
+
+                        }
+
+                        def sizeReport = [project.file(binary.toolChain.path[0].toString() + '/' + binary.targetPlatform.architecture.name + '-size'), elfFile].execute().inputStream.text
                         sizeFile.write sizeReport
                         println "\n" + sizeReport
 
@@ -350,22 +420,15 @@ model {
                     def execloc = 'build/exe/utestrunner/'
      
                     println "\n==== CppUTest ===="
-                    if (osMatch("windows")) {
-                        execloc = execloc + 'x86_64-pc-cygwin/'
-                    } else if (osMatch("mac")) {
-                        execloc = execloc + 'osx_x86-64/'
-                    } else if (osMatch("linux")) {
-                        execloc = execloc + 'x86_64-linux/'
-                    }
 
-                    def proc = [project.file(execloc + 'utestrunner'), '-c', '-ojunit', '-v'].execute()
+                    def proc = [binary.tasks.link.outputFile, '-c', '-ojunit', '-v'].execute()
                     proc.in.eachLine { line -> println line }
                     proc.err.eachLine { line -> println 'ERROR: ' + line }
                     def returnCode = proc.waitFor()
 
                     FileTree tree = fileTree(dir: '.', include: '**/cpputest*.xml')
                     tree.each { File file ->
-                        file.renameTo(execloc + file.name)
+                        file.renameTo(binary.tasks.link.outputFile.parent + "/" + file.name)
                     }
 
                     if (returnCode != 0) {
@@ -377,74 +440,69 @@ model {
             binary.tasks.build.dependsOn utestTask
         }
     }
-
 }
 
 task init {
     def toolDir = new File('.tools')
-    def gccToolchain = new File(toolDir, project.ext.toolchainName + "-" + project.ext.toolchainTimestamp + "-" + project.ext.toolchainPlatform + "." + project.ext.toolchainExtension)
-    def gccToolchainExtracted = new File(toolDir, project.ext.toolchainName)
 
     if(!toolDir.exists()) {
         toolDir.mkdirs()
     }
 
-    if (!gccToolchain.exists()) {
-        new URL(project.ext.toolchainUrl).withInputStream {
-            i -> gccToolchain.withOutputStream { it << i }
-        }
-    }
+    def inputFile = new File("gradle/packages.json")
+    def json = new groovy.json.JsonSlurper().parseText(inputFile.text)
+    def osName = System.getProperty("os.name").toLowerCase()
+    def allToolchains = "${toolchains}".split(',')
 
-    if (!gccToolchainExtracted.exists() && gccToolchain.exists()) {
-        if (project.ext.toolchainExtension.contains("tar.bz2")) {
-            def proc = ["tar", "-C", ".tools/", "-xjf",
-                ".tools/" + project.ext.toolchainName + "-" + project.ext.toolchainTimestamp + "-" + project.ext.toolchainPlatform + "." + project.ext.toolchainExtension].execute()
-            proc.err.eachLine { line -> println 'ERROR: ' + line }
-            proc.waitFor()
-        } else {
-            copy {
-                from zipTree(gccToolchain)
-                into gccToolchainExtracted
+    json.packages.tools.each { tools ->
+        tools.each { tool ->
+
+            def toolStamp = new File(toolDir, tool.name + "." + tool.version)
+
+            if (!toolStamp.exists()) {
+                if (tool.name in allToolchains) {
+                    println "TOOL: " + tool.name
+
+                    tool.systems.each { sys ->
+
+                        if (sys.host == osHostName(osName)) {
+
+                            def toolFile = new File(toolDir, sys.archiveFileName)
+
+                            if (!toolFile.exists()) {
+                                println "Downloading: " + sys.url + " to " + toolFile
+                                new URL(sys.url).withInputStream { inputStream ->
+                                    toolFile.withOutputStream { it << inputStream }
+                                }
+                            }
+
+                            println "Extracting: " + toolFile.toString()
+                            if (toolFile.toString().contains("tar.bz2")) {
+                                def proc = ["tar", "-C", ".tools/", "-xjf", toolFile].execute()
+                                proc.err.eachLine { line -> println 'ERROR: ' + line }
+                                proc.waitFor()
+                            } else if (toolFile.toString().contains("tar.gz")) {
+                                def proc = ["tar", "-C", ".tools/", "-xzf", toolFile].execute()
+                                proc.err.eachLine { line -> println 'ERROR: ' + line }
+                                proc.waitFor()
+                            } else {
+                                copy {
+                                    from zipTree(toolFile)
+                                    into toolDir
+                                }
+                            }
+                        }
+                    }
+
+                    toolStamp << "..."
+                }
             }
         }
-    } else if (!gccToolchainExtracted.exists()) {
-        println 'ERROR'
-    }
-}
-
-def osShortName(osName) {
-    def shortName
-    if (osName.contains("windows")) {
-        shortName = "win32"
-    } else if (osName.contains("mac")) {
-        shortName = "mac"
-    } else if (osName.contains("linux")) {
-        shortName = "linux"
     }
 
-    return shortName
-}
-
-def osMatch(name) {
-    return System.getProperty("os.name").toLowerCase().contains(name)
-}
-
-def findFileRecursive(directoryName, filePattern) {
-    def fileFound
-    def directory = new File(directoryName)
-
-    if (directory.isDirectory()) {
-        def findFilenameClosure = {
-            if (filePattern.matcher(it.name).find()) {
-                fileFound = it
-            }
-        }
-        directory.eachFileRecurse(findFilenameClosure)
-    }
-
-    return fileFound
 }
 
 task wrapper(type: Wrapper) {
     gradleVersion = '3.3'
 }
+

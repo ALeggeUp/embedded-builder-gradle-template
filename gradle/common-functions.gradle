@@ -1,0 +1,250 @@
+/*
+ * common-functions.gradle
+ *
+ * Created by Stephen Legge <stephen@aleggeup.com>, February 2017
+ *
+ * Copyright (C) 2016-2017 [ A Legge Up ], Stephen Legge <stephen@aleggeup.com>
+ * All Rights Reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of [ A Legge Up ], [ A Legge Up Consulting] nor the
+ *       names of its contributors may be used to endorse or promote products
+ *       derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+ext {
+    baseVersion = '0.9.0'
+    def timestampFormat = new java.text.SimpleDateFormat('yyyyMMddHHmm')
+    timestampFormat.timeZone = TimeZone.getTimeZone("UTC")
+
+    project.version = baseVersion
+
+    toolchainName = "gcc-arm-none-eabi-5_4-2016q3"
+    toolchainTimestamp = "20160926"
+    toolchainPlatform = ""
+    toolchainExtension = "tar.bz2"
+
+    String osName = System.getProperty("os.name").toLowerCase();
+    if (osName.contains("windows")) {
+        toolchainPlatform = "win32"
+        toolchainExtension = "zip"
+    } else if (osName.contains("mac")) {
+        toolchainPlatform = "mac"
+        toolchainExtension = "tar.bz2"
+    } else if (osName.contains("linux")) {
+        toolchainPlatform = "linux"
+        toolchainExtension = "tar.bz2"
+    }
+
+    // https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/gcc-arm-none-eabi-5_4-2016q3-20160926-mac.tar.bz2
+    // https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2
+    // https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/gcc-arm-none-eabi-5_4-2016q3-20160926-win32.zip
+
+    // https://developer.arm.com/-/media/Files/downloads/gnu-rm/6-2016q4/gcc-arm-none-eabi-6_2-2016q4-20161216-win32-zip.zip
+
+    toolchainUrl = "https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/" + toolchainName + "-" + toolchainTimestamp + "-" + toolchainPlatform + "." + toolchainExtension
+}
+
+ext.osHostName = { osName ->
+
+    def hostName
+    if (osName.contains("windows")) {
+        hostName = "i686-mingw32"
+    } else if (osName.contains("mac")) {
+        hostName = "i386-apple-darwin"
+    } else if (osName.contains("linux")) {
+        hostName = "x86_64-pc-linux-gnu"
+    }
+
+    return hostName
+}
+
+ext.osMatch = { name ->
+    return System.getProperty("os.name").toLowerCase().contains(name)
+}
+
+ext.esp8266Combiner = { String parentBase, mode ->
+/*  # write flash bin header
+    #============================
+    #  SPI FLASH PARAMS
+    #-------------------
+    #flash_mode=
+    #     0: QIO
+    #     1: QOUT
+    #     2: DIO
+    #     3: DOUT
+    #-------------------
+    #flash_clk_div=
+    #     0 :  80m / 2
+    #     1 :  80m / 3
+    #     2 :  80m / 4
+    #    0xf:  80m / 1
+    #-------------------
+    #flash_size_map=
+    #     0 : 512 KB (256 KB + 256 KB)
+    #     1 : 256 KB
+    #     2 : 1024 KB (512 KB + 512 KB)
+    #     3 : 2048 KB (512 KB + 512 KB)
+    #     4 : 4096 KB (512 KB + 512 KB)
+    #     5 : 2048 KB (1024 KB + 1024 KB)
+    #     6 : 4096 KB (1024 KB + 1024 KB)
+    #-------------------
+    #   END OF SPI FLASH PARAMS
+    #============================ */
+
+    int BIN_MAGIC_FLASH  = 0xE9
+    int BIN_MAGIC_IROM   = 0xEA
+
+    int textStart = 0
+    int callUserStart = 0
+    int dataStart = 0
+    int rodataStart = 0
+
+    project.file(parentBase + ".sym").splitEachLine(" ") { fields ->
+
+        if (fields[1] == 'T' && fields[2] == 'call_user_start') {
+            callUserStart = Integer.parseInt(fields[0], 16)
+        } else if (fields[1] == 'A' && fields[2] == '_text_start') {
+            textStart = Integer.parseInt(fields[0], 16)
+        } else if (fields[1] == 'A' && fields[2] == '_data_start') {
+            dataStart = Integer.parseInt(fields[0], 16)
+        } else if (fields[1] == 'A' && fields[2] == '_rodata_start') {
+            rodataStart = Integer.parseInt(fields[0], 16)
+        }
+    }
+
+    int sumSize = 1
+    int flash_data_line = 0x10
+    int data_line_bits = 0x0f
+
+    def header = boot2header(0, 1, 0, callUserStart, true)
+    def irom0bytes = combine(parentBase + ".irom0text.bin", 0, false)
+    def header2 = boot2header(0, 1, 0, callUserStart, false)
+    def textBytes = combine(parentBase + ".text.bin", textStart, true)
+    def dataBytes = combine(parentBase + ".data.bin", dataStart, true)
+    def rodataBytes = combine(parentBase + ".rodata.bin", rodataStart, true)
+    def finalPad
+
+    // sumSize += header.size()
+    // sumSize += irom0bytes.size()
+    sumSize += header2.size()
+    sumSize += textBytes.size()
+    sumSize += dataBytes.size()
+    sumSize += rodataBytes.size()
+
+    sumSize = flash_data_line - (sumSize & data_line_bits)
+    if (sumSize > 0) {
+        finalPad = padding(sumSize)
+    }
+
+    int chk = simplechk(0xef, textBytes)
+    chk = simplechk(chk, dataBytes)
+    chk = simplechk(chk, rodataBytes)
+
+    def fos = new FileOutputStream(project.file(parentBase + ".flash.bin"))
+    // fos << header
+    // fos << irom0bytes
+    fos << header2
+    fos << textBytes
+    fos << dataBytes
+    fos << rodataBytes
+    if (finalPad) {
+        fos << finalPad
+    }
+    fos.write(chk)
+    fos.close()
+
+    def f = project.file(parentBase + ".flash.bin")
+    def c = crc32(f.getBytes())
+
+    fos = new FileOutputStream(project.file(parentBase + ".flash.bin"), true)
+
+    // baos.write(java.nio.ByteBuffer.allocate(4).order(java.nio.ByteOrder.LITTLE_ENDIAN).putInt(c).array())
+
+    fos.write((int)(c & 0xff))
+
+    fos.write((int)(c.rightShift(8) & 0xff))
+    fos.write((int)(c.rightShift(16) & 0xff))
+    fos.write((int)(c.rightShift(24) & 0xff))
+
+    fos.close()
+
+    return true;
+}
+
+def crc32(byte[] bytes) {
+    new java.util.zip.CRC32().with { update bytes; value }
+}
+
+def simplechk(int start, bytes) {
+    int chk = start
+    int header = 0
+
+    bytes.each { b ->
+        if (header++ > 7) {
+            chk ^= (b & 0xff)
+        }
+    }
+
+    return chk
+}
+
+def padding(int size) {
+    def baos = new ByteArrayOutputStream()
+
+    baos.write(new byte[size])
+
+    return baos.toByteArray()
+}
+
+def boot2header(int flash_mode, int flash_clk_div, int flash_size_map, int entry_addr, boolean first) {
+
+    int MAGIC_HEADER_BYTE = first ? 0xEA : 0xE9
+    int MAGIC_HEADER_ID = first ? 0x04 : 0x03
+
+    def flash_size_speed = (((flash_size_map << 4) | flash_clk_div) & 0xff)
+
+    def baos = new ByteArrayOutputStream()
+    baos.write([MAGIC_HEADER_BYTE, MAGIC_HEADER_ID, (flash_mode & 0xff), flash_size_speed] as byte[])
+    baos.write(java.nio.ByteBuffer.allocate(4).order(java.nio.ByteOrder.LITTLE_ENDIAN).putInt(entry_addr).array())
+
+    return baos.toByteArray()
+}
+
+def combine(String file_name, int start_offset_addr, boolean need_chk) {
+
+    def file = project.file(file_name)
+    int actualLength = file.length()
+    int mask = need_chk ? 0x03 : 0x0f
+    int paddedLength = ((actualLength + mask) & (~mask)) as int
+
+    def baos = new ByteArrayOutputStream()
+    baos.write(java.nio.ByteBuffer.allocate(8).order(java.nio.ByteOrder.LITTLE_ENDIAN).putInt(start_offset_addr).putInt(paddedLength).array())
+    baos.write(file.getBytes())
+
+    if (paddedLength > actualLength) {
+        baos.write(new byte[paddedLength - actualLength])
+    }
+
+    return baos.toByteArray()
+}
+

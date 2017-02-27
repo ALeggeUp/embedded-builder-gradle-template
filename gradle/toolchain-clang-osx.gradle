@@ -54,3 +54,20 @@ model {
     }
 
 }
+
+def findFileRecursive(directoryName, filePattern) {
+    def fileFound
+    def directory = new File(directoryName)
+
+    if (directory.isDirectory()) {
+        def findFilenameClosure = {
+            if (filePattern.matcher(it.name).find()) {
+                fileFound = it
+            }
+        }
+        directory.eachFileRecurse(findFilenameClosure)
+    }
+
+    return fileFound
+}
+

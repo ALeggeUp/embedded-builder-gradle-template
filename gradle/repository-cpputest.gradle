@@ -31,6 +31,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+
 model {
 
     repositories {
@@ -54,4 +55,17 @@ model {
         }
     }
 
+}
+
+def osShortName(osName) {
+    def shortName
+    if (osName.contains("windows")) {
+        shortName = "win32"
+    } else if (osName.contains("mac")) {
+        shortName = "mac"
+    } else if (osName.contains("linux")) {
+        shortName = "linux"
+    }
+
+    return shortName
 }

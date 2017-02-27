@@ -33,3 +33,4 @@
 
 apply from: "gradle/repository-cmsis.gradle"
 apply from: "gradle/repository-cpputest.gradle"
+apply from: "gradle/repository-esp8266-nonos.gradle"
