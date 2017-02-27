@@ -35,7 +35,7 @@
 
 #define MAIN_H
 
-#ifdef UTEST
+// #ifdef UTEST
 extern "C" {
     void _exit( int ) { while (1); }
     unsigned int _getpid() { return 0; }
@@ -48,7 +48,19 @@ extern "C" {
     int _close( int ) { return 0; }
     int _isatty( int ) { return 0; }
     int _open( const char *path, int access ) { return 0; }
+
+    void _exit_r( int ) { while (1); }
+    unsigned int _getpid_r() { return 0; }
+    int _kill_r( int, int ) { return 0; }
+    void _sbrk_r( int ) {}
+    int _fstat_r (int, void*) { return 0; }
+    int _write_r( int, char, int ) { return 0; }
+    int _read_r( int, char, int ) { return 0; }
+    int _lseek_r( int, int ) { return 0; }
+    int _close_r( int ) { return 0; }
+    int _isatty_r( int ) { return 0; }
+    int _open_r( const char *path, int access ) { return 0; }
 }
-#endif
+// #endif
 
 #endif
