@@ -108,7 +108,7 @@ model {
                     // args << "-lgcc"
                     // args << "-lstdc++"
                     // args << "-lsupc++"
-                    args << "-L.tools/ESP8266_NONOS_SDK/lib"
+                    args << "-L.tools/esp8266_nonos_sdk/ESP8266_NONOS_SDK/lib"
                     args << "-Tsrc/firmware/linker/eagle.app.v6.ld"
                     // args << "-Tsrc/firmware/linker/eagle.app.v6.new.512.app1.ld"
                     // args << "-Tsrc/firmware/linker/eagle.app.v6.new.512.app2.ld"

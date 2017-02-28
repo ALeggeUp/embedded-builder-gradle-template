@@ -457,7 +457,7 @@ task init {
     json.packages.tools.each { tools ->
         tools.each { tool ->
 
-            def toolStamp = new File(toolDir, tool.name + "." + tool.version)
+            def toolStamp = new File(toolDir, tool.name + "." + tool.version + ".stamp")
 
             if (!toolStamp.exists()) {
                 if (tool.name in allToolchains) {
@@ -486,9 +486,13 @@ task init {
                                 proc.err.eachLine { line -> println 'ERROR: ' + line }
                                 proc.waitFor()
                             } else {
+
+                                def zipToolDir = new File(toolDir, tool.name)
+                                zipToolDir.mkdirs()
+
                                 copy {
                                     from zipTree(toolFile)
-                                    into toolDir
+                                    into zipToolDir
                                 }
                             }
                         }
